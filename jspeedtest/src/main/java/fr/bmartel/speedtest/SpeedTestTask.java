@@ -33,6 +33,7 @@ import fr.bmartel.speedtest.model.SpeedTestMode;
 import fr.bmartel.speedtest.model.UploadStorageType;
 import fr.bmartel.speedtest.utils.RandomGen;
 import fr.bmartel.speedtest.utils.SpeedTestUtils;
+
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
@@ -43,9 +44,13 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -391,9 +396,22 @@ public class SpeedTestTask {
 
             /* establish mSocket parameters */
             mSocket.setReuseAddress(true);
-
             mSocket.setKeepAlive(true);
 
+            /* setup ip interface */
+            final NetworkInterface nif = NetworkInterface.getByName("wlan0");
+            final Enumeration<InetAddress> nifAddresses = nif.getInetAddresses();
+            
+            InetAddress inet4 = null ;
+            
+            while( nifAddresses.hasMoreElements() ){
+	  	        final InetAddress addr = nifAddresses.nextElement();
+	  	        if( addr instanceof Inet4Address && !addr.isLoopbackAddress() ){
+	  	        	inet4 =  addr;
+	  	        }
+  	      	}
+
+            mSocket.bind(new InetSocketAddress(inet4, 0));
             mSocket.connect(new InetSocketAddress(mHostname, mPort));
 
             if (mReadExecutorService == null || mReadExecutorService.isShutdown()) {
